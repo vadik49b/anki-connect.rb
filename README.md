@@ -1,15 +1,25 @@
 # AnkiConnect Ruby
 
-[AnkiConnect](https://git.sr.ht/~foosoft/anki-connect) provides a simple HTTP API to communicate with Anki. This Ruby gem is a wrapper around that API.
+[AnkiConnect provides a simple HTTP API](https://git.sr.ht/~foosoft/anki-connect) to communicate with Anki. This Ruby gem is a wrapper around that API.
 
 ## Requirements
 
 - Ruby 3.4+
-- Anki with Anki-Connect plugin installed
+- Anki with AnkiConnect plugin installed
 
 ## Installation
 
-Add this line to your application's Gemfile:
+First, install the [AnkiConnect](https://ankiweb.net/shared/info/2055492159) addon in Anki:
+
+1. Open Anki
+2. Go to Tools → Add-ons (⇧⌘A on macOS)
+3. Click "Get Add-ons..."
+4. Enter the code `2055492159` and click OK
+5. Restart Anki
+
+Anki must be kept running in the background for other applications to use AnkiConnect. You can verify that AnkiConnect is running by visiting `localhost:8765` in your browser. If the server is running, you will see `{ "apiVersion": "AnkiConnect v.6" }`.
+
+Then add this line to your application's Gemfile:
 
 ```ruby
 gem 'anki_connect'
