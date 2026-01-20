@@ -2,11 +2,6 @@
 
 [AnkiConnect provides a simple HTTP API](https://git.sr.ht/~foosoft/anki-connect) to communicate with Anki. This Ruby gem is a wrapper around that API.
 
-## Requirements
-
-- Ruby 3.4+
-- Anki with AnkiConnect plugin installed
-
 ## Installation
 
 First, install the [AnkiConnect](https://ankiweb.net/shared/info/2055492159) addon in Anki:
@@ -59,7 +54,7 @@ notes = client.get_notes(query: "deck:Default")
 #                     "Back" => { "value" => "A programming language", "order" => 1 } } }]
 ```
 
-For more examples, see the [`examples/`](examples/) directory.
+For a complete list of all API methods, see the [RubyDoc documentation](https://rubydoc.info/gems/anki_connect). More examples in the [`examples/`](examples/) directory.
 
 ## Development
 
