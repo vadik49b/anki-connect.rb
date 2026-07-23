@@ -18,11 +18,19 @@ module AnkiConnect
         request(:deckNamesAndIds)
       end
 
+      # Gets a deck name by ID.
+      #
+      # @param deck_id [Integer] Deck ID
+      # @return [String] Deck name
+      def deck_name_from_id(deck_id)
+        request(:deckNameFromId, deckId: deck_id)
+      end
+
       # Gets deck membership for given cards.
       #
       # @param card_ids [Array<Integer>] Array of card IDs
       # @return [Hash] Deck names mapped to arrays of card IDs
-      def get_decks_for_cards(card_ids)
+      def decks_for_cards(card_ids)
         request(:getDecks, cards: card_ids)
       end
 
@@ -48,15 +56,17 @@ module AnkiConnect
       # @param names [Array<String>] Array of deck names
       # @param cards_too [Boolean] Must be true to confirm deletion
       # @return [nil]
-      def delete_decks(names, cards_too: true)
+      def delete_decks(names, cards_too:)
+        raise ArgumentError, 'cards_too must be true to delete decks' unless cards_too == true
+
         request(:deleteDecks, decks: names, cardsToo: cards_too)
       end
 
       # Gets configuration for a deck.
       #
       # @param name [String] Deck name
-      # @return [Hash] Configuration object
-      def get_deck_config(name)
+      # @return [Hash, false] Configuration object, or false when the deck does not exist
+      def deck_config(name)
         request(:getDeckConfig, deck: name)
       end
 
@@ -100,7 +110,7 @@ module AnkiConnect
       #
       # @param names [Array<String>] Array of deck names
       # @return [Hash] Deck IDs mapped to stats objects
-      def get_deck_stats(names)
+      def deck_stats(names)
         request(:getDeckStats, decks: names)
       end
     end

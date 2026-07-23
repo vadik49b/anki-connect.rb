@@ -15,19 +15,19 @@ class RequestContractTest < UnitTest
 
   def test_scalar_card_predicate
     assert_request(:suspended, { card: 1 }) do |client|
-      client.suspended?(1)
+      client.card_suspended?(1)
     end
   end
 
   def test_array_card_predicate
     assert_request(:areSuspended, { cards: [1, 2] }) do |client|
-      client.suspended?([1, 2])
+      client.card_suspension_statuses([1, 2])
     end
   end
 
   def test_scalar_due_result
     assert_request(:areDue, { cards: [1] }, results: [[true]]) do |client|
-      assert client.due?(1)
+      assert client.card_due?(1)
     end
   end
 
@@ -46,17 +46,17 @@ class RequestContractTest < UnitTest
     ) do |client|
       client.add_note(
         deck_name: 'Default',
-        model_name: 'Basic',
+        note_type_name: 'Basic',
         fields: { 'Front' => 'Question', 'Back' => 'Answer' },
         tags: ['ruby'],
-        options: { allowDuplicate: true }
+        options: { allow_duplicate: true }
       )
     end
   end
 
   def test_note_query_parameters
     assert_request(:notesInfo, { query: 'deck:Default' }) do |client|
-      client.get_notes(query: 'deck:Default')
+      client.notes(query: 'deck:Default')
     end
   end
 
@@ -66,14 +66,14 @@ class RequestContractTest < UnitTest
       {
         modelName: 'Basic 2',
         inOrderFields: %w[Front Back],
-        cardTemplates: [{ 'Name' => 'Card 1', 'Front' => '{{Front}}', 'Back' => '{{Back}}' }],
+        cardTemplates: [{ Name: 'Card 1', Front: '{{Front}}', Back: '{{Back}}' }],
         isCloze: false
       }
     ) do |client|
-      client.create_model(
+      client.create_note_type(
         name: 'Basic 2',
         fields: %w[Front Back],
-        templates: [{ 'Name' => 'Card 1', 'Front' => '{{Front}}', 'Back' => '{{Back}}' }]
+        templates: [{ name: 'Card 1', front: '{{Front}}', back: '{{Back}}' }]
       )
     end
   end
@@ -92,13 +92,13 @@ class RequestContractTest < UnitTest
       :guiBrowse,
       { query: 'deck:Default', reorderCards: { order: 'ascending', columnId: 'noteCrt' } }
     ) do |client|
-      client.gui_browse('deck:Default', reorder_cards: { order: 'ascending', columnId: 'noteCrt' })
+      client.gui_browse('deck:Default', reorder_cards: { order: 'ascending', column_id: 'noteCrt' })
     end
   end
 
   def test_statistics_parameters
     assert_request(:cardReviews, { deck: 'Default', startID: 1_700_000_000_000 }) do |client|
-      client.get_reviews('Default', after: 1_700_000_000_000)
+      client.reviews('Default', after: 1_700_000_000_000)
     end
   end
 

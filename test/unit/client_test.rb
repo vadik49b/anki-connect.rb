@@ -36,7 +36,7 @@ class ClientTest < UnitTest
 
   def test_accepts_https_endpoint_uri
     client = AnkiConnect::Client.new(endpoint: URI('https://anki.example.test/connect'))
-    http = request_with(client, response(result: 6)) { |instance| instance.version }
+    http = request_with(client, response(result: 6)) { |instance| instance.api_version }
 
     assert http.use_ssl
     assert_equal 'anki.example.test', http.host
@@ -46,7 +46,7 @@ class ClientTest < UnitTest
 
   def test_connects_to_ipv6_hostname_without_brackets
     client = AnkiConnect::Client.new(endpoint: 'http://[::1]:8765')
-    http = request_with(client, response(result: 6)) { |instance| instance.version }
+    http = request_with(client, response(result: 6)) { |instance| instance.api_version }
 
     assert_equal '::1', client.host
     assert_equal '::1', http.host
@@ -84,14 +84,42 @@ class ClientTest < UnitTest
 
   def test_serializes_api_key
     client = AnkiConnect::Client.new(api_key: 'secret')
-    http = request_with(client, response(result: 6)) { |instance| instance.version }
+    http = request_with(client, response(result: 6)) { |instance| instance.api_version }
+
+    assert_equal 'secret', JSON.parse(http.last_request.body)['key']
+  end
+
+  def test_rejects_api_key_over_remote_plaintext_http
+    error = assert_raises(ArgumentError) do
+      AnkiConnect::Client.new(endpoint: 'http://anki.example.test', api_key: 'secret')
+    end
+
+    assert_equal 'api_key requires HTTPS for non-loopback endpoints', error.message
+  end
+
+  def test_does_not_treat_127_prefixed_hostname_as_loopback
+    assert_raises(ArgumentError) do
+      AnkiConnect::Client.new(endpoint: 'http://127.example.test', api_key: 'secret')
+    end
+  end
+
+  def test_allows_api_key_over_ipv4_loopback_range
+    client = AnkiConnect::Client.new(endpoint: 'http://127.0.0.2:8765', api_key: 'secret')
+    http = request_with(client, response(result: 6)) { |instance| instance.api_version }
+
+    assert_equal 'secret', JSON.parse(http.last_request.body)['key']
+  end
+
+  def test_allows_api_key_over_https
+    client = AnkiConnect::Client.new(endpoint: 'https://anki.example.test', api_key: 'secret')
+    http = request_with(client, response(result: 6)) { |instance| instance.api_version }
 
     assert_equal 'secret', JSON.parse(http.last_request.body)['key']
   end
 
   def test_configures_timeouts
     client = AnkiConnect::Client.new(open_timeout: 1, read_timeout: 2, write_timeout: 3)
-    http = request_with(client, response(result: 6)) { |instance| instance.version }
+    http = request_with(client, response(result: 6)) { |instance| instance.api_version }
 
     assert_equal 1, http.open_timeout
     assert_equal 2, http.read_timeout
@@ -113,7 +141,7 @@ class ClientTest < UnitTest
     client = AnkiConnect::Client.new
 
     error = assert_raises(AnkiConnect::APIError) do
-      request_with(client, response(error: 'unsupported action')) { |instance| instance.version }
+      request_with(client, response(error: 'unsupported action')) { |instance| instance.api_version }
     end
 
     assert_kind_of AnkiConnect::Error, error
@@ -126,7 +154,7 @@ class ClientTest < UnitTest
     response = Response.new('503', 'temporarily unavailable')
 
     error = assert_raises(AnkiConnect::HTTPError) do
-      request_with(client, response) { |instance| instance.version }
+      request_with(client, response) { |instance| instance.api_version }
     end
 
     assert_equal 503, error.status
@@ -138,7 +166,7 @@ class ClientTest < UnitTest
     client = AnkiConnect::Client.new
 
     error = assert_raises(AnkiConnect::ProtocolError) do
-      request_with(client, Response.new('200', '<html>')) { |instance| instance.version }
+      request_with(client, Response.new('200', '<html>')) { |instance| instance.api_version }
     end
 
     assert_equal '<html>', error.body
@@ -150,7 +178,7 @@ class ClientTest < UnitTest
     client = AnkiConnect::Client.new
 
     error = assert_raises(AnkiConnect::ProtocolError) do
-      request_with(client, Response.new('200', '{}')) { |instance| instance.version }
+      request_with(client, Response.new('200', '{}')) { |instance| instance.api_version }
     end
 
     assert_equal 'AnkiConnect response must contain result and error', error.message
@@ -161,7 +189,7 @@ class ClientTest < UnitTest
     original_error = Errno::ECONNREFUSED.new
 
     error = assert_raises(AnkiConnect::TransportError) do
-      request_with(client, nil, error: original_error) { |instance| instance.version }
+      request_with(client, nil, error: original_error) { |instance| instance.api_version }
     end
 
     assert_same original_error, error.original_error

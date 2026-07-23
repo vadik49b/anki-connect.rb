@@ -10,13 +10,16 @@ module AnkiConnect
       # @param data [String, nil] Base64-encoded contents
       # @param path [String, nil] Absolute file path
       # @param url [String, nil] URL to download from
+      # @param skip_hash [String, nil] MD5 hash that causes an identical upload to be skipped
       # @param overwrite [Boolean] If true, overwrites existing file
-      # @return [String] Filename (possibly modified if overwrite=false)
-      def store_media(filename, data: nil, path: nil, url: nil, overwrite: true)
+      # @return [String, nil] Filename, or nil when skipped by hash
+      def store_media(filename, data: nil, path: nil, url: nil, skip_hash: nil, overwrite: true)
+        sources = { data: data, path: path, url: url }.reject { |_key, value| value.nil? }
+        raise ArgumentError, 'provide exactly one of data, path, or url' unless sources.one?
+
         params = { filename: filename, deleteExisting: overwrite }
-        params[:data] = data if data
-        params[:path] = path if path
-        params[:url] = url if url
+        params.merge!(sources)
+        params[:skipHash] = skip_hash unless skip_hash.nil?
         request(:storeMediaFile, **params)
       end
 
@@ -32,14 +35,14 @@ module AnkiConnect
       #
       # @param pattern [String] Glob pattern
       # @return [Array<String>] Array of filenames
-      def list_media(pattern: '*')
+      def media_files(pattern: '*')
         request(:getMediaFilesNames, pattern: pattern)
       end
 
       # Gets the media folder path.
       #
       # @return [String] Absolute path
-      def media_dir_path
+      def media_directory
         request(:getMediaDirPath)
       end
 

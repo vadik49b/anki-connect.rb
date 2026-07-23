@@ -5,14 +5,27 @@ module AnkiConnect
     # Methods to interact with Anki's GUI windows and dialogs
     # (card browser, review screen, editing interfaces).
     module Graphical
+      REORDER_CARD_KEYS = {
+        'order' => :order,
+        'column_id' => :columnId
+      }.freeze
+      private_constant :REORDER_CARD_KEYS
+
       # Opens Card Browser dialog and searches for query.
       #
-      # @param query [String] Search query string
-      # @param reorder_cards [Hash, nil] (optional) Object with order (ascending/descending) and columnId
+      # @param query [String, nil] Search query string; nil preserves the current browser search
+      # @param reorder_cards [Hash, nil] Object with order and column_id
       # @return [Array<Integer>] Array of card IDs found
-      def gui_browse(query, reorder_cards: nil)
-        params = { query: query }
-        params[:reorderCards] = reorder_cards if reorder_cards
+      def gui_browse(query = nil, reorder_cards: nil)
+        params = {}
+        params[:query] = query unless query.nil?
+        if reorder_cards
+          normalized = normalize_keys(reorder_cards, REORDER_CARD_KEYS, name: 'reorder_cards')
+          missing_keys = REORDER_CARD_KEYS.values.reject { |key| normalized.key?(key) }
+          raise ArgumentError, "missing reorder_cards keys: #{missing_keys.join(', ')}" unless missing_keys.empty?
+
+          params[:reorderCards] = normalized
+        end
         request(:guiBrowse, **params)
       end
 
@@ -34,10 +47,12 @@ module AnkiConnect
       # Opens Add Cards dialog with preset values.
       # Multiple invocations close old window and reopen with new values.
       #
-      # @param note [Hash] Note object with deckName, modelName, fields, tags, and optional audio/video/picture
+      # @param note [Hash, nil] Optional note preset
       # @return [Integer] Note ID that would be created if user confirms
-      def gui_add_cards(note)
-        request(:guiAddCards, note: note)
+      def gui_add_cards(note = nil)
+        params = {}
+        params[:note] = normalize_gui_note(note) unless note.nil?
+        request(:guiAddCards, **params)
       end
 
       # Opens Edit dialog for a note.
@@ -52,16 +67,24 @@ module AnkiConnect
       # Sets fields/tags/deck/model in open Add Note dialog.
       # Returns error if Add Note dialog not open. Deck/model always replace; fields/tags respect append flag.
       #
-      # @param note [Hash] Note object with optional deckName, modelName, fields, tags
+      # @param note [Hash] Note with optional deck_name, note_type_name, fields, tags, and media
       # @param append [Boolean] If true, appends to fields/tags; otherwise replaces (default: false)
-      # @return [Boolean] true on success
+      # @return [Boolean, Hash] true on success, or an error hash when the dialog is closed
       def gui_add_note_set_data(note, append: false)
-        request(:guiAddNoteSetData, note: note, append: append)
+        request(:guiAddNoteSetData, note: normalize_gui_note(note), append: append)
+      end
+
+      # Checks whether the review screen has an active card.
+      #
+      # @return [Boolean] true when review is active
+      def gui_review_active?
+        request(:guiReviewActive)
       end
 
       # Gets information about current card in review.
       #
-      # @return [Hash, nil] Object with card info, or nil if not in review mode
+      # @return [Hash] Current card information
+      # @raise [APIError] If review is not active
       def gui_current_card
         request(:guiCurrentCard)
       end
@@ -69,7 +92,7 @@ module AnkiConnect
       # Starts/resets timer for current card.
       # Useful for accurate time tracking when displaying cards via API.
       #
-      # @return [Boolean] true
+      # @return [Boolean] false when review is not active or no card is available
       def gui_start_card_timer
         request(:guiStartCardTimer)
       end

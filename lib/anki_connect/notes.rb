@@ -7,38 +7,59 @@ module AnkiConnect
       # Creates a new note.
       #
       # @param deck_name [String] Target deck
-      # @param model_name [String] Note type
+      # @param note_type_name [String] Note type
       # @param fields [Hash] Field names to values
       # @param tags [Array<String>] Tags (optional)
       # @param media [Hash, nil] Media to add (audio:, video:, picture: arrays)
-      # @param options [Hash, nil] Options (allowDuplicate, duplicateScope, etc.)
-      # @return [Integer, nil] Note ID on success, nil on failure
-      def add_note(deck_name:, model_name:, fields:, tags: [], media: nil, options: nil)
-        note = { deckName: deck_name, modelName: model_name, fields: fields, tags: tags }
-        note.merge!(media) if media
-        note[:options] = options if options
-        request(:addNote, note: note)
+      # @param options [Hash, nil] Options such as allow_duplicate and duplicate_scope
+      # @return [Integer] Note ID on success
+      def add_note(deck_name:, note_type_name:, fields:, tags: [], media: nil, options: nil)
+        note = { deck_name: deck_name, note_type_name: note_type_name, fields: fields, tags: tags }
+        note[:media] = media unless media.nil?
+        note[:options] = options unless options.nil?
+        request(:addNote, note: normalize_note(note))
       end
 
       # Creates multiple notes.
       #
       # @param notes [Array<Hash>] Array of note hashes (same keys as add_note)
-      # @return [Array<Integer, nil>] Array of note IDs (nil for failed notes)
+      # The operation is all-or-nothing; AnkiConnect rolls back all additions if any note fails.
+      #
+      # @return [Array<Integer>] Array of note IDs
       def add_notes(notes)
-        request(:addNotes, notes: notes)
+        request(:addNotes, notes: notes.map { |note| normalize_note(note) })
       end
 
-      # Checks if notes can be added.
+      # Checks if one note can be added.
       #
-      # @param notes [Array<Hash>] Array of candidate note objects
-      # @param details [Boolean] If true, returns error details (default: false)
-      # @return [Array<Boolean>, Array<Hash>] Array of booleans, or hashes with canAdd and error if details=true
-      def can_add_notes(notes, details: false)
-        if details
-          request(:canAddNotesWithErrorDetail, notes: notes)
-        else
-          request(:canAddNotes, notes: notes)
-        end
+      # @param note [Hash] Candidate note using snake_case keys
+      # @return [Boolean] Whether the note can be added
+      def note_addable?(note)
+        request(:canAddNote, note: normalize_note(note))
+      end
+
+      # Gets addability details for one note.
+      #
+      # @param note [Hash] Candidate note
+      # @return [Hash] Hash with canAdd and optional error
+      def note_addability(note)
+        request(:canAddNoteWithErrorDetail, note: normalize_note(note))
+      end
+
+      # Gets addability status for each note, preserving input order.
+      #
+      # @param notes [Array<Hash>] Candidate notes
+      # @return [Array<Boolean>] Addability statuses
+      def note_addability_statuses(notes)
+        request(:canAddNotes, notes: notes.map { |note| normalize_note(note) })
+      end
+
+      # Gets addability details for each note, preserving input order.
+      #
+      # @param notes [Array<Hash>] Candidate notes
+      # @return [Array<Hash>] Hashes with canAdd and optional error
+      def note_addability_details(notes)
+        request(:canAddNotesWithErrorDetail, notes: notes.map { |note| normalize_note(note) })
       end
 
       # Updates a note's fields, tags, or media.
@@ -49,29 +70,56 @@ module AnkiConnect
       # @param media [Hash, nil] Media to add (audio:, video:, picture: arrays)
       # @return [nil]
       def update_note(id, fields: nil, tags: nil, media: nil)
+        if fields.nil? && tags.nil? && media.nil?
+          raise ArgumentError, 'provide fields, tags, or media to update'
+        end
+
         note = { id: id }
-        note[:fields] = fields if fields
-        note[:tags] = tags if tags
-        note.merge!(media) if media
+        note[:fields] = fields || {} unless fields.nil? && media.nil?
+        note[:tags] = tags unless tags.nil?
+        merge_media!(note, media) unless media.nil?
         request(:updateNote, note: note)
       end
 
-      # Changes a note's model type.
+      # Updates a note's fields and optional media.
       #
       # @param id [Integer] Note ID
-      # @param model_name [String] New model name
-      # @param fields [Hash] New field values
-      # @param tags [Array<String>] New tags
+      # @param fields [Hash] Field names to new values
+      # @param media [Hash, nil] Media to add (audio:, video:, picture:)
       # @return [nil]
-      def change_note_model(id, model_name:, fields:, tags:)
-        request(:updateNoteModel, note: { id: id, modelName: model_name, fields: fields, tags: tags })
+      def update_note_fields(id, fields:, media: nil)
+        note = { id: id, fields: fields }
+        merge_media!(note, media) unless media.nil?
+        request(:updateNoteFields, note: note)
+      end
+
+      # Replaces all tags on a note.
+      #
+      # @param id [Integer] Note ID
+      # @param tags [String, Array<String>] Replacement tags
+      # @return [nil]
+      def update_note_tags(id, tags)
+        request(:updateNoteTags, note: id, tags: normalize_note_tags(tags))
+      end
+
+      # Changes a note's note type.
+      #
+      # @param id [Integer] Note ID
+      # @param note_type_name [String] New note type name
+      # All fields not supplied are cleared when the note type changes.
+      #
+      # @param fields [Hash] Complete values for fields in the new note type
+      # @param tags [Array<String>] Replacement tags
+      # @return [nil]
+      def change_note_type(id, note_type_name:, fields:, tags:)
+        request(:updateNoteModel, note: { id: id, modelName: note_type_name, fields: fields, tags: tags })
       end
 
       # Gets tags for a note.
       #
       # @param note_id [Integer] Note ID
       # @return [Array<String>] Array of tag strings
-      def get_note_tags(note_id)
+      def note_tags(note_id)
         request(:getNoteTags, note: note_id)
       end
 
@@ -81,7 +129,7 @@ module AnkiConnect
       # @param tags [String, Array<String>] Tag(s) to add
       # @return [nil]
       def add_tags(note_ids, tags)
-        request(:addTags, notes: note_ids, tags: tags)
+        request(:addTags, notes: note_ids, tags: normalize_tag_query(tags))
       end
 
       # Removes tags from notes.
@@ -90,13 +138,13 @@ module AnkiConnect
       # @param tags [String, Array<String>] Tag(s) to remove
       # @return [nil]
       def remove_tags(note_ids, tags)
-        request(:removeTags, notes: note_ids, tags: tags)
+        request(:removeTags, notes: note_ids, tags: normalize_tag_query(tags))
       end
 
       # Gets all tags in collection.
       #
       # @return [Array<String>] Array of all tag strings
-      def all_tags
+      def tags
         request(:getTags)
       end
 
@@ -134,10 +182,12 @@ module AnkiConnect
       # @param note_ids [Array<Integer>, nil] Array of note IDs
       # @param query [String, nil] Search query string
       # @return [Array<Hash>] Array of note objects
-      def get_notes(note_ids: nil, query: nil)
-        params = {}
-        params[:notes] = note_ids if note_ids
-        params[:query] = query if query
+      def notes(note_ids: nil, query: nil)
+        unless [note_ids, query].count { |selector| !selector.nil? } == 1
+          raise ArgumentError, 'provide exactly one of note_ids or query'
+        end
+
+        params = note_ids.nil? ? { query: query } : { notes: note_ids }
         request(:notesInfo, **params)
       end
 
@@ -145,7 +195,7 @@ module AnkiConnect
       #
       # @param note_ids [Array<Integer>] Array of note IDs
       # @return [Array<Hash>] Array of objects with noteId and mod
-      def get_notes_mod_time(note_ids)
+      def note_modification_times(note_ids)
         request(:notesModTime, notes: note_ids)
       end
 
@@ -157,11 +207,109 @@ module AnkiConnect
         request(:deleteNotes, notes: note_ids)
       end
 
-      # Removes all empty notes.
+      # Removes note types that are not used by any notes.
+      # The upstream action name is misleading; it does not remove notes with empty fields.
       #
       # @return [nil]
-      def remove_empty_notes
+      def remove_unused_note_types
         request(:removeEmptyNotes)
+      end
+
+      private
+
+      NOTE_KEYS = {
+        'deck_name' => :deckName,
+        'note_type_name' => :modelName,
+        'fields' => :fields,
+        'tags' => :tags,
+        'options' => :options,
+        'media' => :media,
+        'audio' => :audio,
+        'video' => :video,
+        'picture' => :picture
+      }.freeze
+      GUI_NOTE_KEYS = NOTE_KEYS.reject { |key, _value| key == 'options' }.freeze
+      MEDIA_KEYS = {
+        'audio' => :audio,
+        'video' => :video,
+        'picture' => :picture
+      }.freeze
+      OPTION_KEYS = {
+        'allow_duplicate' => :allowDuplicate,
+        'duplicate_scope' => :duplicateScope,
+        'duplicate_scope_options' => :duplicateScopeOptions
+      }.freeze
+      SCOPE_OPTION_KEYS = {
+        'deck_name' => :deckName,
+        'check_children' => :checkChildren,
+        'check_all_note_types' => :checkAllModels
+      }.freeze
+      MEDIA_ITEM_KEYS = {
+        'filename' => :filename,
+        'fields' => :fields,
+        'data' => :data,
+        'path' => :path,
+        'url' => :url,
+        'skip_hash' => :skipHash,
+        'overwrite' => :deleteExisting
+      }.freeze
+      private_constant :NOTE_KEYS, :GUI_NOTE_KEYS, :MEDIA_KEYS, :OPTION_KEYS, :SCOPE_OPTION_KEYS, :MEDIA_ITEM_KEYS
+
+      def normalize_note(note, key_map: NOTE_KEYS)
+        normalized = normalize_keys(note, key_map, name: 'note') do |key, value|
+          if key == :options
+            normalize_options(value)
+          elsif MEDIA_KEYS.value?(key)
+            normalize_media(value)
+          else
+            value
+          end
+        end
+
+        merge_media!(normalized, normalized.delete(:media)) if normalized.key?(:media)
+        normalized
+      end
+
+      def normalize_gui_note(note)
+        normalize_note(note, key_map: GUI_NOTE_KEYS)
+      end
+
+      def merge_media!(note, media)
+        normalized_media = normalize_keys(media, MEDIA_KEYS, name: 'media') do |_key, value|
+          normalize_media(value)
+        end
+        normalized_media.each do |key, value|
+          raise ArgumentError, "duplicate media key: #{key}" if note.key?(key)
+
+          note[key] = value
+        end
+      end
+
+      def normalize_note_tags(tags)
+        tags = [tags] if tags.is_a?(String)
+        unless tags.is_a?(Array) && tags.all? { |tag| tag.is_a?(String) }
+          raise ArgumentError, 'tags must be a String or an Array of Strings'
+        end
+
+        tags
+      end
+
+      def normalize_tag_query(tags)
+        normalize_note_tags(tags).join(' ')
+      end
+
+      def normalize_options(options)
+        normalize_keys(options, OPTION_KEYS, name: 'options') do |key, value|
+          key == :duplicateScopeOptions ? normalize_keys(value, SCOPE_OPTION_KEYS, name: 'duplicate_scope_options') : value
+        end
+      end
+
+      def normalize_media(media)
+        media.is_a?(Array) ? media.map { |item| normalize_media_item(item) } : normalize_media_item(media)
+      end
+
+      def normalize_media_item(item)
+        normalize_keys(item, MEDIA_ITEM_KEYS, name: 'media item')
       end
     end
   end

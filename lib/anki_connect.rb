@@ -1,9 +1,10 @@
 # frozen_string_literal: true
 
 require_relative 'anki_connect/version'
+require_relative 'anki_connect/params'
 require_relative 'anki_connect/cards'
 require_relative 'anki_connect/decks'
-require_relative 'anki_connect/models'
+require_relative 'anki_connect/note_types'
 require_relative 'anki_connect/notes'
 require_relative 'anki_connect/media'
 require_relative 'anki_connect/graphical'

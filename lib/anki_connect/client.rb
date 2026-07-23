@@ -3,14 +3,26 @@
 require 'net/http'
 require 'json'
 require 'uri'
+require 'ipaddr'
+require_relative 'version'
+require_relative 'params'
+require_relative 'cards'
+require_relative 'decks'
+require_relative 'note_types'
+require_relative 'notes'
+require_relative 'media'
+require_relative 'graphical'
+require_relative 'statistics'
+require_relative 'miscellaneous'
 
 module AnkiConnect
   # Main client class that includes all API modules and provides
   # the core request mechanism.
   class Client
+    include AnkiConnect::Client::Params
     include AnkiConnect::Client::Cards
     include AnkiConnect::Client::Decks
-    include AnkiConnect::Client::Models
+    include AnkiConnect::Client::NoteTypes
     include AnkiConnect::Client::Notes
     include AnkiConnect::Client::Media
     include AnkiConnect::Client::Graphical
@@ -21,8 +33,6 @@ module AnkiConnect
     attr_reader :host
     # @return [Integer] AnkiConnect server port
     attr_reader :port
-    # @return [String, nil] API key for authentication (if configured)
-    attr_reader :api_key
     # @return [URI::HTTP, URI::HTTPS] AnkiConnect endpoint
     attr_reader :endpoint
     # @return [Numeric] Connection timeout in seconds
@@ -47,6 +57,7 @@ module AnkiConnect
     )
       @endpoint = parse_endpoint(endpoint ? endpoint.to_s : "http://#{host}:#{port}")
       validate_endpoint!
+      validate_api_key_transport!(api_key)
       @host = @endpoint.hostname
       @port = @endpoint.port
       @api_key = api_key
@@ -120,6 +131,21 @@ module AnkiConnect
       return if endpoint.is_a?(URI::HTTP) && endpoint.host
 
       raise ArgumentError, 'endpoint must be an HTTP or HTTPS URL with a host'
+    end
+
+    def validate_api_key_transport!(api_key)
+      return if api_key.nil? || endpoint.scheme == 'https' || loopback_endpoint?
+
+      raise ArgumentError, 'api_key requires HTTPS for non-loopback endpoints'
+    end
+
+    def loopback_endpoint?
+      host = endpoint.hostname.downcase
+      return true if host == 'localhost'
+
+      IPAddr.new(host).loopback?
+    rescue IPAddr::InvalidAddressError
+      false
     end
 
     def parse_endpoint(value)

@@ -2,7 +2,7 @@
 
 module AnkiConnect
   # The version of the anki_connect gem
-  VERSION = '0.1.1'
+  VERSION = '0.2.0'
 
   # The AnkiConnect API version this gem is compatible with
   API_VERSION = 6

@@ -8,7 +8,7 @@ module AnkiConnect
       # Requests API permission (first call to establish trust).
       # Only method accepting requests from any origin. Shows popup for untrusted origins.
       #
-      # @return [Hash] Object with permission (granted/denied), and optionally requireApiKey and version
+      # @return [Hash] Object with permission and optionally requireApikey and version
       def request_permission
         request(:requestPermission)
       end
@@ -16,7 +16,7 @@ module AnkiConnect
       # Gets AnkiConnect API version.
       #
       # @return [Integer] Version number (currently 6)
-      def version
+      def api_version
         request(:version)
       end
 
@@ -25,7 +25,7 @@ module AnkiConnect
       # @param scopes [Array<String>] Array of scope names (currently only "actions" supported)
       # @param actions [Array<String>, nil] null for all actions, or array of action names to check (optional)
       # @return [Hash] Object with scopes used and available actions
-      def api_reflect(scopes, actions: nil)
+      def api_capabilities(scopes, actions: nil)
         params = { scopes: scopes }
         params[:actions] = actions if actions
         request(:apiReflect, **params)
@@ -55,16 +55,18 @@ module AnkiConnect
       # Switches to specified profile.
       #
       # @param name [String] Profile name
-      # @return [Boolean] true on success
+      # @return [Boolean] true on success, false when the profile does not exist
       def load_profile(name)
         request(:loadProfile, name: name)
       end
 
       # Performs multiple actions in one request.
+      # Unlike convenience wrappers, each action uses AnkiConnect's raw wire keys.
       #
-      # @param actions [Array<Hash>] Array of action objects (each with action, version, params)
+      # @param actions [Array<Hash>] Raw wire action objects with action, version, and params
       # @return [Array] Array of responses in same order
-      def multi(actions)
+      # @see #request Use request for individual actions
+      def batch(actions)
         request(:multi, actions: actions)
       end
 
@@ -80,9 +82,9 @@ module AnkiConnect
 
       # Imports .apkg file into collection.
       #
-      # @param path [String] File path (relative to collection.media folder)
+      # @param path [String] Package file path on the Anki host
       # @return [Boolean] true on success, false otherwise
-      def import_deck(path)
+      def import_package(path)
         request(:importPackage, path: path)
       end
 

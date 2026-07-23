@@ -28,12 +28,12 @@ module AnkiConnect
         request(:getCollectionStatsHTML, wholeCollection: whole_collection)
       end
 
-      # Gets all card reviews for a deck after a certain time.
+      # Gets all card reviews for a deck after a review log ID.
       #
       # @param deck_name [String] Deck name
-      # @param after [Integer] Unix timestamp (reviews after this time, exclusive)
+      # @param after [Integer] Review log ID in epoch milliseconds (exclusive)
       # @return [Array<Array>] Array of 9-tuples: (reviewTime, cardID, usn, buttonPressed, newInterval, previousInterval, newFactor, reviewDuration, reviewType)
-      def get_reviews(deck_name, after:)
+      def reviews(deck_name, after:)
         request(:cardReviews, deck: deck_name, startID: after)
       end
 
@@ -41,21 +41,21 @@ module AnkiConnect
       #
       # @param card_ids [Array<Integer>] Array of card IDs
       # @return [Hash] Dictionary mapping card IDs to arrays of review objects with id, usn, ease, ivl, lastIvl, factor, time, type
-      def get_reviews_for_cards(card_ids)
+      def reviews_for_cards(card_ids)
         request(:getReviewsOfCards, cards: card_ids)
       end
 
-      # Gets unix time of latest review for a deck.
+      # Gets the latest review log ID for a deck.
       #
       # @param deck_name [String] Deck name
-      # @return [Integer] Unix timestamp, or 0 if no reviews
-      def latest_review_time(deck_name)
+      # @return [Integer] Review log ID in epoch milliseconds, or 0 if no reviews
+      def latest_review_id(deck_name)
         request(:getLatestReviewID, deck: deck_name)
       end
 
       # Inserts review records into database.
       #
-      # @param reviews [Array<Array>] Array of 9-tuples (same format as get_reviews output)
+      # @param reviews [Array<Array>] Array of 9-tuples (same format as reviews output)
       # @return [nil]
       def insert_reviews(reviews)
         request(:insertReviews, reviews: reviews)

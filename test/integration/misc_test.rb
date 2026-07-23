@@ -6,7 +6,7 @@ class MiscTest < Minitest::Test
   include IntegrationTestSetup
 
   def test_version
-    version = @client.version
+    version = @client.api_version
     assert version.is_a?(Integer)
     assert version >= 6
   end

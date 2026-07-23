@@ -10,14 +10,14 @@ client = AnkiConnect::Client.new
 puts 'Available decks:'
 client.deck_names.each { |deck| puts "  - #{deck}" }
 
-# Get all models
-puts "\nAvailable models:"
-client.model_names.each { |model| puts "  - #{model}" }
+# Get all note types
+puts "\nAvailable note types:"
+client.note_type_names.each { |note_type| puts "  - #{note_type}" }
 
 # Add a new note
 note_id = client.add_note(
   deck_name: 'Default',
-  model_name: 'Basic',
+  note_type_name: 'Basic',
   fields: { Front: 'What is the capital of France?', Back: 'Paris' },
   tags: %w[geography europe]
 )
@@ -29,10 +29,10 @@ note_ids = client.search_notes('tag:geography')
 puts "\nFound #{note_ids.length} notes with tag 'geography'"
 
 # Get detailed info about the notes
-notes = client.get_notes(note_ids: note_ids)
+notes = client.notes(note_ids: note_ids)
 notes.each do |note|
   puts "\nNote #{note['noteId']}:"
-  puts "  Model: #{note['modelName']}"
+  puts "  Note type: #{note['modelName']}"
   puts "  Tags: #{note['tags'].join(', ')}"
   note['fields'].each do |field_name, field_data|
     puts "  #{field_name}: #{field_data['value']}"

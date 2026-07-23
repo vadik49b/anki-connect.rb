@@ -32,7 +32,7 @@ client = AnkiConnect::Client.new
 client.sync
 
 # Customize this query for your deck and note type
-notes = client.get_notes(query: 'deck:Spanish note:Cloze -tag:fix')
+notes = client.notes(query: 'deck:Spanish note:Cloze -tag:fix')
 puts "Found #{notes.length} cloze note(s)"
 
 Dir.mkdir(SPEECH_FOLDER) unless Dir.exist?(SPEECH_FOLDER)
