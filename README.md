@@ -66,6 +66,24 @@ bundle install
 bundle exec rake console
 ```
 
+### Testing
+
+Run the unit tests, which do not require Anki:
+
+```bash
+bundle exec rake
+# or explicitly
+bundle exec rake test:unit
+```
+
+Run the integration tests against a running AnkiConnect instance:
+
+```bash
+bundle exec rake test:integration
+```
+
+Integration tests modify the collection in the active Anki profile. They use a uniquely named temporary deck and only remove the deck when its creation succeeds, but a disposable profile is recommended.
+
 ## Acknowledgments
 
 - [Anki-Connect](https://git.sr.ht/~foosoft/anki-connect) by FooSoft for the excellent Anki plugin
