@@ -3,7 +3,9 @@
 require_relative '../integration_test_helper'
 
 class MiscTest < Minitest::Test
-  include IntegrationTestSetup
+  def setup
+    @client = AnkiConnect::Client.new
+  end
 
   def test_version
     version = @client.api_version

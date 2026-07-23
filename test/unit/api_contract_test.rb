@@ -75,9 +75,30 @@ class APIContractTest < UnitTest
     end
   end
 
+  def test_update_note_requires_a_change
+    client = RecordingClient.new
+
+    error = assert_raises(ArgumentError) { client.update_note(1) }
+
+    assert_equal 'provide fields, tags, or media to update', error.message
+    assert_empty client.requests
+  end
+
   def test_tag_arrays_become_anki_tag_queries
     assert_request(:addTags, { notes: [1], tags: 'ruby test' }) do |client|
       client.add_tags([1], %w[ruby test])
+    end
+  end
+
+  def test_replace_tag_selects_the_matching_wire_action
+    assert_request(
+      :replaceTags,
+      { notes: [1, 2], tag_to_replace: 'old', replace_with_tag: 'new' }
+    ) do |client|
+      client.replace_tag(from: 'old', to: 'new', note_ids: [1, 2])
+    end
+    assert_request(:replaceTagsInAllNotes, { tag_to_replace: 'old', replace_with_tag: 'new' }) do |client|
+      client.replace_tag(from: 'old', to: 'new')
     end
   end
 
@@ -95,6 +116,17 @@ class APIContractTest < UnitTest
     error = assert_raises(ArgumentError) { client.add_notes([NOTE.merge(unexpected: true)]) }
 
     assert_equal 'unknown note key: unexpected', error.message
+    assert_empty client.requests
+  end
+
+  def test_note_rejects_duplicate_media_keys
+    client = RecordingClient.new
+    media_item = { filename: 'word.mp3', fields: ['Front'], data: 'eA==' }
+    note = NOTE.merge(media: { audio: media_item }, audio: media_item)
+
+    error = assert_raises(ArgumentError) { client.add_notes([note]) }
+
+    assert_equal 'duplicate media key: audio', error.message
     assert_empty client.requests
   end
 
