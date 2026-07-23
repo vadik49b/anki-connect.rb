@@ -54,6 +54,33 @@ notes = client.get_notes(query: "deck:Default")
 #                     "Back" => { "value" => "A programming language", "order" => 1 } } }]
 ```
 
+### Client Configuration
+
+The client connects to `http://127.0.0.1:8765` by default. A complete endpoint URL, API key, and network timeouts can be configured when needed:
+
+```ruby
+client = AnkiConnect::Client.new(
+  endpoint: "https://anki.example.com/connect",
+  api_key: ENV.fetch("ANKI_CONNECT_API_KEY"),
+  open_timeout: 5,
+  read_timeout: 60,
+  write_timeout: 60
+)
+```
+
+The existing `host:` and `port:` options remain available for HTTP endpoints.
+
+### Errors
+
+All client errors inherit from `AnkiConnect::Error`:
+
+- `AnkiConnect::TransportError` indicates that the HTTP request could not be completed.
+- `AnkiConnect::HTTPError` indicates a non-successful HTTP response and exposes `status` and `body`.
+- `AnkiConnect::ProtocolError` indicates invalid JSON or a response missing the required `result` and `error` fields.
+- `AnkiConnect::APIError` contains an error returned by an AnkiConnect action.
+
+Errors expose the failed `action`. `TransportError` also exposes the underlying exception as `original_error`.
+
 For a complete list of all API methods, see the [RubyDoc documentation](https://rubydoc.info/gems/anki_connect). More examples in the [`examples/`](examples/) directory.
 
 ## Development
