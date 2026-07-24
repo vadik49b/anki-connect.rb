@@ -11,11 +11,11 @@ module AnkiConnect
       }.freeze
       private_constant :REORDER_CARD_KEYS
 
-      # Opens Card Browser dialog and searches for query.
+      # Opens the Card Browser, searches for a query, and optionally reorders the cards.
       #
-      # @param query [String, nil] Search query string; nil preserves the current browser search
-      # @param reorder_cards [Hash, nil] Object with order and column_id
-      # @return [Array<Integer>] Array of card IDs found
+      # @param query [String, nil] Anki search query; nil preserves the current browser search
+      # @param reorder_cards [Hash, nil] order and visible column_id used to sort the results
+      # @return [Array<Integer>] IDs of cards found
       def gui_browse(query = nil, reorder_cards: nil)
         params = {}
         params[:query] = query unless query.nil?
@@ -44,8 +44,7 @@ module AnkiConnect
         request(:guiSelectedNotes)
       end
 
-      # Opens Add Cards dialog with preset values.
-      # Multiple invocations close old window and reopen with new values.
+      # Opens Add Cards with optional preset values; repeated calls replace the window.
       #
       # @param note [Hash, nil] Optional note preset
       # @return [Integer] Note ID that would be created if user confirms
@@ -55,8 +54,7 @@ module AnkiConnect
         request(:guiAddCards, **params)
       end
 
-      # Opens Edit dialog for a note.
-      # Opens edit dialog with Preview, Browse, and navigation buttons.
+      # Opens the note editor with preview, browsing, and navigation controls.
       #
       # @param note_id [Integer] Note ID
       # @return [nil]
@@ -64,8 +62,8 @@ module AnkiConnect
         request(:guiEditNote, note: note_id)
       end
 
-      # Sets fields/tags/deck/model in open Add Note dialog.
-      # Returns error if Add Note dialog not open. Deck/model always replace; fields/tags respect append flag.
+      # Sets Add Note data. Deck and note type replace; fields and tags honor append.
+      # Requires AnkiConnect commit de6e6e1 or later; unavailable in 25.11.9.0.
       #
       # @param note [Hash] Note with optional deck_name, note_type_name, fields, tags, and media
       # @param append [Boolean] If true, appends to fields/tags; otherwise replaces (default: false)
@@ -89,8 +87,7 @@ module AnkiConnect
         request(:guiCurrentCard)
       end
 
-      # Starts/resets timer for current card.
-      # Useful for accurate time tracking when displaying cards via API.
+      # Resets the current card timer for accurate API-driven review timing.
       #
       # @return [Boolean] false when review is not active or no card is available
       def gui_start_card_timer
@@ -111,11 +108,10 @@ module AnkiConnect
         request(:guiShowAnswer)
       end
 
-      # Answers the current card.
-      # Answer must be displayed before answering.
+      # Answers the current card. The answer must be displayed first.
       #
-      # @param ease [Integer] Answer button (1-4)
-      # @return [Boolean] true on success, false otherwise
+      # @param ease [Integer] Available answer button number
+      # @return [Boolean] true on success; false if review is inactive, the answer is hidden, or ease is invalid
       def gui_answer_card(ease)
         request(:guiAnswerCard, ease: ease)
       end
@@ -150,10 +146,10 @@ module AnkiConnect
         request(:guiDeckReview, name: name)
       end
 
-      # Opens Import dialog with optional file path.
-      # Opens file dialog if no path provided. Forward slashes required on Windows. Anki 2.1.52+ only.
+      # Opens Import for user review. Without a path, opens a file chooser.
+      # Supports all Anki import types; Windows paths use forward slashes. Requires Anki 2.1.52+.
       #
-      # @param path [String, nil] File path to import (optional)
+      # @param path [String, nil] Optional file path on the Anki host
       # @return [nil]
       def gui_import_file(path: nil)
         params = {}
@@ -161,16 +157,14 @@ module AnkiConnect
         request(:guiImportFile, **params)
       end
 
-      # Schedules graceful Anki shutdown.
-      # Asynchronous - returns immediately without waiting for termination.
+      # Schedules shutdown and returns immediately.
       #
       # @return [nil]
       def gui_exit_anki
         request(:guiExitAnki)
       end
 
-      # Requests database check.
-      # Returns immediately without waiting for check to complete.
+      # Starts a database check and returns immediately.
       #
       # @return [Boolean] true (always)
       def gui_check_database

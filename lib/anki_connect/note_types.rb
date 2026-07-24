@@ -109,10 +109,10 @@ module AnkiConnect
         request(:modelStyling, modelName: note_type_name)
       end
 
-      # Updates templates for a note type.
+      # Updates selected template sides for a note type.
       #
       # @param name [String] Note type name
-      # @param templates [Hash] Template names mapped to optional front/back values
+      # @param templates [Hash] Templates mapped to front and/or back; omitted values stay unchanged
       # @return [nil]
       def update_note_type_templates(name, templates)
         request(:updateModelTemplates, model: { name: name, templates: normalize_template_updates(templates) })
@@ -171,7 +171,7 @@ module AnkiConnect
       # Adds a template to a note type.
       #
       # @param note_type_name [String] Note type name
-      # @param template [Hash] Template with Name, Front, Back
+      # @param template [Hash] Template with name, front, and back
       # @return [nil]
       def add_note_type_template(note_type_name, template)
         request(:modelTemplateAdd, modelName: note_type_name, template: normalize_template(template))
@@ -247,12 +247,12 @@ module AnkiConnect
         request(:modelFieldSetFontSize, modelName: note_type_name, fieldName: field_name, fontSize: size)
       end
 
-      # Sets description for a field.
+      # Sets the description shown in the editor when a field is empty.
       #
       # @param note_type_name [String] Note type name
       # @param field_name [String] Field name
       # @param description [String] Description text
-      # @return [Boolean] true on success
+      # @return [Boolean] true if set, or false on Anki 2.1.49 and older
       def set_note_type_field_description(note_type_name, field_name, description)
         request(:modelFieldSetDescription, modelName: note_type_name, fieldName: field_name, description: description)
       end

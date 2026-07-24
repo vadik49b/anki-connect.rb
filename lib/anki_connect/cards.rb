@@ -12,8 +12,8 @@ module AnkiConnect
 
       # Gets ease factors for cards.
       #
-      # @param card_ids [Array<Integer>] Array of card IDs
-      # @return [Array<Integer, nil>] Ease factors; nil for missing cards
+      # @param card_ids [Array<Integer>] Card IDs
+      # @return [Array<Integer, nil>] Ease factors in card ID order; nil for missing cards
       def ease_factors(card_ids)
         request(:getEaseFactors, cards: card_ids)
       end
@@ -74,6 +74,7 @@ module AnkiConnect
       end
 
       # Checks whether one card is due for review.
+      # Learning cards with intervals over 20 minutes are due when the interval passes.
       #
       # @param card_id [Integer] Card ID
       # @return [Boolean] Due status
@@ -82,18 +83,19 @@ module AnkiConnect
       end
 
       # Gets due status for each card, preserving input order.
+      # Learning cards with intervals over 20 minutes are due when the interval passes.
       #
       # @param card_ids [Array<Integer>] Card IDs
-      # @return [Array<Boolean>] Due statuses
+      # @return [Array<Boolean>] Due statuses in card ID order
       def card_due_statuses(card_ids)
         request(:areDue, cards: card_ids)
       end
 
-      # Gets intervals for cards.
+      # Gets review intervals for cards.
       #
-      # @param card_ids [Array<Integer>] Array of card IDs
-      # @param complete [Boolean] If true, returns all intervals
-      # @return [Array<Integer>, Array<Array<Integer>>] Intervals
+      # @param card_ids [Array<Integer>] Card IDs
+      # @param complete [Boolean] Return all intervals instead of only the most recent
+      # @return [Array<Integer>, Array<Array<Integer>>] Negative seconds or positive days
       def card_intervals(card_ids, complete: false)
         request(:getIntervals, cards: card_ids, complete: complete)
       end
@@ -146,10 +148,10 @@ module AnkiConnect
         request(:relearnCards, cards: card_ids)
       end
 
-      # Answers cards programmatically.
+      # Answers cards, starting each card's timer immediately before answering.
       #
-      # @param answers [Array<Hash>] Array of { card_id:, ease: } (1=Again, 2=Hard, 3=Good, 4=Easy)
-      # @return [Array<Boolean>] Array indicating if each card exists
+      # @param answers [Array<Hash>] Answers as { card_id:, ease: } (1=Again, 2=Hard, 3=Good, 4=Easy)
+      # @return [Array<Boolean>] Whether each card exists, in answer order
       def answer_cards(answers)
         normalized = answers.map do |answer|
           answer = normalize_keys(answer, ANSWER_KEYS, name: 'answer')
@@ -161,10 +163,10 @@ module AnkiConnect
         request(:answerCards, answers: normalized)
       end
 
-      # Sets due date for cards.
+      # Sets due dates, converting new cards to review cards.
       #
-      # @param card_ids [Array<Integer>] Array of card IDs
-      # @param days [String, Integer] Due date (0=today, 1!=tomorrow, 3-7=random range)
+      # @param card_ids [Array<Integer>] Card IDs
+      # @param days [String, Integer] 0=today, 1!=tomorrow with interval 1, 3-7=random range
       # @return [Boolean] true on success
       def set_due_date(card_ids, days)
         request(:setDueDate, cards: card_ids, days: days)

@@ -10,7 +10,7 @@ module AnkiConnect
       # @param note_type_name [String] Note type
       # @param fields [Hash] Field names to values
       # @param tags [Array<String>] Tags (optional)
-      # @param media [Hash, nil] Media to add (audio:, video:, picture: arrays)
+      # @param media [Hash, nil] Optional audio, video, or picture items with filename and a source
       # @param options [Hash, nil] Options such as allow_duplicate and duplicate_scope
       # @return [Integer] Note ID on success
       def add_note(deck_name:, note_type_name:, fields:, tags: [], media: nil, options: nil)
@@ -20,11 +20,9 @@ module AnkiConnect
         request(:addNote, note: normalize_note(note))
       end
 
-      # Creates multiple notes.
+      # Creates notes, gathering all errors and rolling back the additions if any fail.
       #
       # @param notes [Array<Hash>] Array of note hashes (same keys as add_note)
-      # The operation is all-or-nothing; AnkiConnect rolls back all additions if any note fails.
-      #
       # @return [Array<Integer>] Array of note IDs
       def add_notes(notes)
         request(:addNotes, notes: notes.map { |note| normalize_note(note) })
@@ -67,7 +65,7 @@ module AnkiConnect
       # @param id [Integer] Note ID
       # @param fields [Hash, nil] Field names to new values
       # @param tags [Array<String>, nil] New tags (replaces existing)
-      # @param media [Hash, nil] Media to add (audio:, video:, picture: arrays)
+      # @param media [Hash, nil] Optional audio, video, or picture items with filename and a source
       # @return [nil]
       def update_note(id, fields: nil, tags: nil, media: nil)
         if fields.nil? && tags.nil? && media.nil?

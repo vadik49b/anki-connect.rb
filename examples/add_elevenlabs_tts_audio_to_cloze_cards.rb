@@ -1,17 +1,8 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# Example: Add ElevenLabs TTS audio to Anki cloze cards
-#
-# I use Anki to learn Spanish with cloze deletion cards for phrases.
-# To train my ear for pronunciation, I want audio for each phrase.
-# This script uses ElevenLabs TTS API to generate speech and attach it to cards.
-#
-# Configuration via environment variables:
-#   ELEVENLABS_API_KEY - Your ElevenLabs API key
-#   ELEVENLABS_VOICE_ID - Voice ID to use
-#
-# Usage:
+# Adds ElevenLabs TTS audio to Spanish cloze notes.
+# Requires ELEVENLABS_API_KEY and ELEVENLABS_VOICE_ID.
 # ELEVENLABS_API_KEY=your_key ELEVENLABS_VOICE_ID=voice_id ruby examples/add_elevenlabs_tts_audio_to_cloze_cards.rb
 
 require 'net/http'

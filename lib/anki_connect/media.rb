@@ -10,9 +10,9 @@ module AnkiConnect
       # @param data [String, nil] Base64-encoded contents
       # @param path [String, nil] Absolute file path
       # @param url [String, nil] URL to download from
-      # @param skip_hash [String, nil] MD5 hash that causes an identical upload to be skipped
-      # @param overwrite [Boolean] If true, overwrites existing file
-      # @return [String, nil] Filename, or nil when skipped by hash
+      # @param skip_hash [String, nil] MD5 hash that causes identical contents to be skipped
+      # @param overwrite [Boolean] Replace an existing file; false chooses a non-conflicting name
+      # @return [String, nil] Stored filename, or nil when skipped by hash
       def store_media(filename, data: nil, path: nil, url: nil, skip_hash: nil, overwrite: true)
         sources = { data: data, path: path, url: url }.reject { |_key, value| value.nil? }
         raise ArgumentError, 'provide exactly one of data, path, or url' unless sources.one?

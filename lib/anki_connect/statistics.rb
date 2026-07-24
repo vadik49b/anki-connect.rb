@@ -5,8 +5,7 @@ module AnkiConnect
     # Methods to query review counts, retrieve review history,
     # and access collection statistics.
     module Statistics
-      # Gets count of cards reviewed today.
-      # "Today" uses day start time as configured in Anki.
+      # Gets cards reviewed since Anki's configured day-start time.
       #
       # @return [Integer] Count of cards reviewed today
       def cards_reviewed_today
@@ -32,15 +31,15 @@ module AnkiConnect
       #
       # @param deck_name [String] Deck name
       # @param after [Integer] Review log ID in epoch milliseconds (exclusive)
-      # @return [Array<Array>] Array of 9-tuples: (reviewTime, cardID, usn, buttonPressed, newInterval, previousInterval, newFactor, reviewDuration, reviewType)
+      # @return [Array<Array>] Review rows with time, card ID, USN, button, intervals, factor, duration, and type
       def reviews(deck_name, after:)
         request(:cardReviews, deck: deck_name, startID: after)
       end
 
       # Gets all reviews for specific cards.
       #
-      # @param card_ids [Array<Integer>] Array of card IDs
-      # @return [Hash] Dictionary mapping card IDs to arrays of review objects with id, usn, ease, ivl, lastIvl, factor, time, type
+      # @param card_ids [Array<Integer>] Card IDs
+      # @return [Hash] Arrays of review objects keyed by card ID, retaining AnkiConnect wire keys
       def reviews_for_cards(card_ids)
         request(:getReviewsOfCards, cards: card_ids)
       end

@@ -16,8 +16,10 @@ require_relative 'statistics'
 require_relative 'miscellaneous'
 
 module AnkiConnect
-  # Main client class that includes all API modules and provides
-  # the core request mechanism.
+  # Named wrappers use snake_case and current Anki terminology. Responses, field and action names,
+  # and raw payloads retain AnkiConnect wire keys.
+  #
+  # Targets API v6, verified against de6e6e1 (Anki 23.10+). Use {#request} for unwrapped actions.
   class Client
     include AnkiConnect::Client::Params
     include AnkiConnect::Client::Cards
@@ -66,12 +68,12 @@ module AnkiConnect
       @write_timeout = write_timeout
     end
 
-    # Makes a request to the AnkiConnect API.
-    # This is the core method used by all API operations.
+    # Sends a raw request without normalizing parameter names. Prefer a named wrapper; otherwise
+    # use AnkiConnect wire keys.
     #
-    # @param action [Symbol] The API action to perform
-    # @param params [Hash] Parameters to send with the request
-    # @return [Object] The result from the API
+    # @param action [Symbol, String] AnkiConnect wire action to perform
+    # @param params [Hash] Wire-format parameters to send with the request
+    # @return [Object] Decoded value of the response's result field
     # @raise [Error] If the API returns an error
     def request(action, **params)
       body = {
